@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bias Scanner MVP</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+textarea {
+    width: 100%;
+    height: 160px;
+    font-size: 14px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+#output {
+    margin-top: 20px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.highlight {
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-weight: bold;
+    background-color: inherit;
+}
+
+.yellow { background-color: #ffff00 !important; color: #000; }
+.orange { background-color: #ffa500 !important; color: #000; }
+.red { background-color: #ff4444 !important; color: #fff; }
+
+.tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.tooltip:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: 120%;
+    left: 0;
+    background: #222;
+    color: #fff;
+    padding: 6px;
+    border-radius: 4px;
+    width: 260px;
+    z-index: 10;
+    white-space: pre-wrap;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Bias Scanner MVP</h2>
+
+<input type="file" id="fileInput" accept=".txt">
+<br><br>
+
+<textarea id="text" placeholder="Paste text or load a .txt file"></textarea>
+<br>
+
+<button onclick="scan()">Scan</button>
+
+<div id="output"></div>
+
+<script>
+// Load .txt file into textarea
+document.getElementById("fileInput").addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById("text").value = e.target.result;
+    };
+    reader.readAsText(file);
+});
+
+async function scan() {
+    const text = document.getElementById("text").value;
+
+    const res = await fetch("/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+    });
+
+    const data = await res.json();
+    console.log("Response:", data);
+    render(text, data.results || []);
+}
+
+function severityColor(sev) {
+    if (sev < 0.5) return "yellow";
+    if (sev < 1.0) return "orange";
+    return "red";
+}
+
+function render(text, results) {
+    let html = "";
+    let last = 0;
+
+    console.log("Rendering with", results.length, "results");
+    results.sort((a, b) => a.start - b.start);
+
+    for (const r of results) {
+        console.log("Processing result:", r);
+        html += escapeHTML(text.slice(last, r.start));
+
+        const segment = escapeHTML(text.slice(r.start, r.end));
+        const tip =
+            r.type.toUpperCase() + "\n" +
+            r.reason + "\n" +
+            "Suggestion: " + r.suggestion;
+
+        html += `
+        <span class="highlight ${severityColor(r.severity)} tooltip"
+              data-tip="${escapeHTML(tip)}">
+            ${segment}
+        </span>`;
+
+        last = r.end;
+    }
+
+    html += escapeHTML(text.slice(last));
+    document.getElementById("output").innerHTML = html;
+}
+
+function escapeHTML(s) {
+    return s.replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+    })[c]);
+}
+</script>
+
+</body>
+</html>
