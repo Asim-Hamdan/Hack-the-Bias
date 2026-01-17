@@ -1,0 +1,24 @@
+Long term:
+    MVP:
+        scan with AI
+        not an extension
+        text doc
+        ollama for local AI
+
+    Final goal:
+        chrome/opera GX extension
+        AI to scan pages for text
+        bias detector and high lighter
+        yellow to red
+        settings for tolerance
+        hover over highlight to say why it was flagged
+        suggest edits 
+        scan on key press + page load
+        setting for page load default off
+
+    Problems:
+        AI API for free
+        the fact that it is an extension
+        10s load time or less
+        make sure it works at all
+        highlighter color
