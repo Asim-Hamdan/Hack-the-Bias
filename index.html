@@ -2,85 +2,301 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Bias Scanner MVP</title>
+<title>Bias Scanner</title>
 
 <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
     padding: 20px;
 }
 
-textarea {
-    width: 100%;
-    height: 160px;
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 20px;
+}
+
+.main {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-height: 800px;
+    overflow-y: auto;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 25px;
     font-size: 14px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    color: #555;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+input[type="file"], textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+input[type="file"]:focus, textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+textarea {
+    height: 300px;
+    resize: vertical;
+    font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
 }
 
 button {
-    margin-top: 10px;
-    padding: 8px 16px;
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
     font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+#scanBtn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+#scanBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+#scanBtn:active {
+    transform: translateY(0);
+}
+
+#clearBtn {
+    background: #f5f5f5;
+    color: #333;
+}
+
+#clearBtn:hover {
+    background: #eeeeee;
 }
 
 #output {
-    margin-top: 20px;
-    line-height: 1.6;
-    word-wrap: break-word;
-    white-space: normal;
+    margin-top: 30px;
+    padding: 20px;
+    background: #fafafa;
+    border-radius: 8px;
+    line-height: 1.8;
+    min-height: 200px;
+    color: #333;
 }
 
 .highlight {
-    padding: 2px 4px;
-    border-radius: 2px;
-    font-weight: bold;
-    background-color: inherit;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: help;
+    position: relative;
+    font-weight: 500;
+    transition: opacity 0.2s;
 }
 
-.yellow { background-color: #ffff00 !important; color: #000; }
-.orange { background-color: #ffa500 !important; color: #000; }
-.red { background-color: #ff4444 !important; color: #fff; }
+.highlight:hover {
+    opacity: 0.8;
+}
+
+.yellow { background-color: #ffeb3b; color: #000; }
+.orange { background-color: #ff9800; color: #fff; }
+.red { background-color: #f44336; color: #fff; }
 
 .tooltip {
     position: relative;
-    cursor: help;
 }
 
 .tooltip:hover::after {
     content: attr(data-tip);
     position: absolute;
-    top: 120%;
-    left: 0;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
     background: #222;
     color: #fff;
-    padding: 6px;
-    border-radius: 4px;
-    width: 260px;
-    z-index: 10;
-    white-space: pre-wrap;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.tooltip:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #222;
+    z-index: 100;
+}
+
+.results-header {
+    color: #667eea;
+    font-weight: 700;
+    margin-bottom: 15px;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.result-item {
+    background: #f9f9f9;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid #667eea;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.result-item:hover {
+    background: #f0f0f0;
+    transform: translateX(4px);
+}
+
+.result-type {
+    display: inline-block;
+    background: #667eea;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.result-reason {
+    color: #666;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.result-severity {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #999;
+}
+
+.loading {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-size: 13px;
+}
+
+.empty-state {
+    text-align: center;
+    color: #999;
+    padding: 30px 20px;
+    font-size: 13px;
+}
+
+@media (max-width: 1024px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        max-height: none;
+    }
 }
 </style>
 </head>
 
 <body>
 
-<h2>Bias Scanner MVP</h2>
+<div class="container">
+    <div class="main">
+        <h1>Bias Scanner</h1>
+        <p class="subtitle">Detect biased language in your text</p>
 
-<input type="file" id="fileInput" accept=".txt">
-<br><br>
+        <div class="input-group">
+            <label for="fileInput">Load File</label>
+            <input type="file" id="fileInput" accept=".txt">
+        </div>
 
-<textarea id="text" placeholder="Paste text or load a .txt file"></textarea>
-<br>
+        <div class="input-group">
+            <label for="text">Text to Analyze</label>
+            <textarea id="text" placeholder="Paste your text here..."></textarea>
+        </div>
 
-<button onclick="scan()">Scan</button>
+        <div class="button-group">
+            <button id="scanBtn" onclick="scan()">Scan for Bias</button>
+            <button id="clearBtn" onclick="clearAll()">Clear</button>
+        </div>
 
-<div id="output"></div>
+        <div id="output" class="empty-state">Results will appear here...</div>
+    </div>
+
+    <div class="sidebar">
+        <div class="results-header">Findings</div>
+        <div id="results-list" class="empty-state">No results yet</div>
+    </div>
+</div>
 
 <script>
-// Load .txt file into textarea
+let currentResults = [];
+
 document.getElementById("fileInput").addEventListener("change", function () {
     const file = this.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = e => {
         document.getElementById("text").value = e.target.result;
@@ -90,16 +306,36 @@ document.getElementById("fileInput").addEventListener("change", function () {
 
 async function scan() {
     const text = document.getElementById("text").value;
+    if (!text.trim()) {
+        alert("Please enter some text to scan");
+        return;
+    }
 
-    const res = await fetch("/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
-    });
+    document.getElementById("scanBtn").disabled = true;
+    document.getElementById("scanBtn").textContent = "Scanning...";
 
-    const data = await res.json();
-    console.log("Response:", data);
-    render(text, data.results || []);
+    try {
+        const res = await fetch("/scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
+
+        const data = await res.json();
+        currentResults = data.results || [];
+        render(text, currentResults);
+        updateResultsList(currentResults);
+    } finally {
+        document.getElementById("scanBtn").disabled = false;
+        document.getElementById("scanBtn").textContent = "Scan for Bias";
+    }
+}
+
+function clearAll() {
+    document.getElementById("text").value = "";
+    document.getElementById("output").innerHTML = '<div class="empty-state">Results will appear here...</div>';
+    document.getElementById("results-list").innerHTML = '<div class="empty-state">No results yet</div>';
+    currentResults = [];
 }
 
 function severityColor(sev) {
@@ -108,33 +344,40 @@ function severityColor(sev) {
     return "red";
 }
 
+function updateResultsList(results) {
+    const list = document.getElementById("results-list");
+    if (results.length === 0) {
+        list.innerHTML = '<div class="empty-state">No bias detected ✓</div>';
+        return;
+    }
+
+    list.innerHTML = results.map((r, i) => `
+        <div class="result-item">
+            <div class="result-type">${r.type}</div>
+            <div class="result-reason">${escapeHTML(r.reason)}</div>
+            <div class="result-severity">Severity: ${(r.severity * 100).toFixed(0)}%</div>
+        </div>
+    `).join("");
+}
+
 function render(text, results) {
     let html = "";
     let last = 0;
 
-    console.log("Rendering with", results.length, "results");
     results.sort((a, b) => a.start - b.start);
 
-    for (const r of results) {
-        console.log("Processing result:", r);
-        html += escapeHTML(text.slice(last, r.start));
-
-        const segment = escapeHTML(text.slice(r.start, r.end));
-        const tip =
-            r.type.toUpperCase() + "\n" +
-            r.reason + "\n" +
-            "Suggestion: " + r.suggestion;
-
-        html += `
-        <span class="highlight ${severityColor(r.severity)} tooltip"
-              data-tip="${escapeHTML(tip)}">
-            ${segment}
-        </span>`;
-
-        last = r.end;
+    if (results.length === 0) {
+        html = '<div class="empty-state">No bias detected in this text ✓</div>';
+    } else {
+        for (const r of results) {
+            html += escapeHTML(text.slice(last, r.start));
+            const segment = escapeHTML(text.slice(r.start, r.end));
+            html += `<span class="highlight ${severityColor(r.severity)} tooltip" data-tip="${escapeHTML(r.reason)}">${segment}</span>`;
+            last = r.end;
+        }
+        html += escapeHTML(text.slice(last));
     }
 
-    html += escapeHTML(text.slice(last));
     document.getElementById("output").innerHTML = html;
 }
 
