@@ -150,7 +150,8 @@ button {
     opacity: 0.8;
 }
 
-.yellow { background-color: #ffeb3b; color: #000; }
+.grey { background-color: #737f8a; color: #fff; }
+.yellow { background-color: #ffeb3b; color: #fff; }
 .orange { background-color: #ff9800; color: #fff; }
 .red { background-color: #f44336; color: #fff; }
 
@@ -234,6 +235,18 @@ button {
     color: #999;
 }
 
+.result-text {
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.result-text .highlight {
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-weight: 600;
+}
+
 .loading {
     text-align: center;
     color: #999;
@@ -257,10 +270,105 @@ button {
         max-height: none;
     }
 }
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.progress-container {
+    width: 100%;
+    background: #f0f0f0;
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    width: 0%;
+    animation: progress 2s ease-in-out infinite;
+}
+
+@keyframes progress {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+}
+
+.loading-subtext {
+    color: #666;
+    font-size: 14px;
+    font-style: italic;
+}
 </style>
 </head>
 
 <body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-modal">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Analyzing text for bias...</div>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+        <div class="loading-subtext">This may take a few seconds</div>
+    </div>
+</div>
 
 <div class="container">
     <div class="main">
@@ -311,6 +419,9 @@ async function scan() {
         return;
     }
 
+    // Show loading overlay
+    document.getElementById("loadingOverlay").classList.add("show");
+
     document.getElementById("scanBtn").disabled = true;
     document.getElementById("scanBtn").textContent = "Scanning...";
 
@@ -326,6 +437,9 @@ async function scan() {
         render(text, currentResults);
         updateResultsList(currentResults);
     } finally {
+        // Hide loading overlay
+        document.getElementById("loadingOverlay").classList.remove("show");
+
         document.getElementById("scanBtn").disabled = false;
         document.getElementById("scanBtn").textContent = "Scan for Bias";
     }
@@ -339,7 +453,7 @@ function clearAll() {
 }
 
 function severityColor(sev) {
-    if (sev < 0.5) return "blue";
+    if (sev < 0.5) return "grey";
     if (sev > 0.5 && sev < 0.75) return "yellow";
     if (sev > 0.75 && sev < 1.0) return "orange";
     return "red";
@@ -354,6 +468,9 @@ function updateResultsList(results) {
 
     list.innerHTML = results.map((r, i) => `
         <div class="result-item">
+            <div class="result-text">
+                <span class="highlight ${severityColor(r.severity)}">${escapeHTML(r.text)}</span>
+            </div>
             <div class="result-type">${r.type}</div>
             <div class="result-reason">${escapeHTML(r.reason)}</div>
             <div class="result-severity">Severity: ${(r.severity * 100).toFixed(0)}%</div>
@@ -371,21 +488,61 @@ function render(text, results) {
 
     // Sort results by the position they appear in the text (to avoid conflicts when replacing)
     results.sort((a, b) => {
-        const posA = text.indexOf(a.text);
-        const posB = text.indexOf(b.text);
+        const posA = findBestMatchPosition(text, a.text);
+        const posB = findBestMatchPosition(text, b.text);
         return posA - posB;
     });
 
     // Replace each problematic text with highlighted version
     for (const r of results) {
-        const escapedText = escapeHTML(r.text);
-        const highlighted = `<span class="highlight ${severityColor(r.severity)} tooltip" data-tip="Suggestion: ${escapeHTML(r.suggestion)}">${escapedText}</span>`;
-        // Use global replace to handle multiple occurrences
-        const regex = new RegExp(escapedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        html = html.replace(regex, highlighted);
+        const match = findBestMatch(text, r.text);
+        if (match) {
+            const escapedMatch = escapeHTML(match);
+            const highlighted = `<span class="highlight ${severityColor(r.severity)} tooltip" data-tip="Suggestion: ${escapeHTML(r.suggestion)}">${escapedMatch}</span>`;
+            // Use global replace to handle multiple occurrences
+            const regex = new RegExp(escapedMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            html = html.replace(regex, highlighted);
+        }
     }
 
     document.getElementById("output").innerHTML = html;
+}
+
+// Find the best match for the AI-extracted text in the original text
+function findBestMatch(originalText, extractedText) {
+    // First try exact match
+    if (originalText.includes(extractedText)) {
+        return extractedText;
+    }
+
+    // Try without leading/trailing punctuation
+    const cleanedExtracted = extractedText.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+    if (originalText.includes(cleanedExtracted)) {
+        return cleanedExtracted;
+    }
+
+    // Try to find as substring with word boundaries
+    const words = cleanedExtracted.split(/\s+/);
+    if (words.length > 0) {
+        // Look for the longest sequence of words that appears in the text
+        for (let i = words.length; i > 0; i--) {
+            for (let j = 0; j <= words.length - i; j++) {
+                const phrase = words.slice(j, j + i).join(' ');
+                if (originalText.includes(phrase)) {
+                    return phrase;
+                }
+            }
+        }
+    }
+
+    // Last resort: return the extracted text as-is (might not match but at least shows something)
+    return extractedText;
+}
+
+// Find the position of the best match for sorting
+function findBestMatchPosition(originalText, extractedText) {
+    const match = findBestMatch(originalText, extractedText);
+    return originalText.indexOf(match);
 }
 
 function escapeHTML(s) {

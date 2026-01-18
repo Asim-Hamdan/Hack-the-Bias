@@ -63,7 +63,8 @@ If you find biased language, return JSON in this exact format:
 If no bias is found, return: []
 
 Rules:
-- Extract the exact problematic words or phrases from the original text
+- Extract the exact problematic words or phrases from the original text, including any surrounding punctuation like quotation marks, apostrophes, parentheses, etc.
+- Include the complete biased expression as it appears in the text
 - severity: 0.0 (no bias) to 1.0 (strong bias)
 - type: one of "political", "emotional", "framing", "assumption", "loaded language"
 - Be conservative - only flag obvious bias
