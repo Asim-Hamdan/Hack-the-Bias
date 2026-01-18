@@ -10,7 +10,7 @@ import json
 
 # ---------------- CONFIG ----------------
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-MODEL = "gemma3:4b"
+MODEL = "gemma2:2b"
 # ----------------------------------------
 
 app = FastAPI()
