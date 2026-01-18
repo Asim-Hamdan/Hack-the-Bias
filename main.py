@@ -39,7 +39,7 @@ def root():
 class ScanRequest(BaseModel):
     text: str
 
-CACHE = {}
+CACHE = {}  # Cleared cache due to format change from indices to text strings
 
 def hash_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -52,8 +52,7 @@ IMPORTANT: Return ONLY a valid JSON array. Do not include any text before or aft
 If you find biased language, return JSON in this exact format:
 [
   {{
-    "start": 0,
-    "end": 10,
+    "text": "problematic words or phrase",
     "severity": 0.5,
     "type": "political",
     "reason": "explanation",
@@ -64,8 +63,8 @@ If you find biased language, return JSON in this exact format:
 If no bias is found, return: []
 
 Rules:
-- Use character indexes from the original text (start and end positions)
-- severity: 0.0 (weak bias) to 1.0 (strong bias)
+- Extract the exact problematic words or phrases from the original text
+- severity: 0.0 (no bias) to 1.0 (strong bias)
 - type: one of "political", "emotional", "framing", "assumption", "loaded language"
 - Be conservative - only flag obvious bias
 

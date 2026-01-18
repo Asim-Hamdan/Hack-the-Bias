@@ -13,7 +13,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #cae14c 0%, #39ecec 100%);
     min-height: 100vh;
     padding: 20px;
 }
@@ -105,7 +105,7 @@ button {
 }
 
 #scanBtn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #24d76f 0%, #1e4dce 100%);
     color: white;
 }
 
@@ -265,7 +265,7 @@ button {
 <div class="container">
     <div class="main">
         <h1>Bias Scanner</h1>
-        <p class="subtitle">Detect biased language in your text</p>
+        <p class="subtitle">Using this tool, you can find out if any of your text contains any bias, be that political, emotional, or otherwise, and it will highlight and explain each portion containing the bias</p>
 
         <div class="input-group">
             <label for="fileInput">Load File</label>
@@ -339,8 +339,9 @@ function clearAll() {
 }
 
 function severityColor(sev) {
-    if (sev < 0.5) return "yellow";
-    if (sev < 1.0) return "orange";
+    if (sev < 0.5) return "blue";
+    if (sev > 0.5 && sev < 0.75) return "yellow";
+    if (sev > 0.75 && sev < 1.0) return "orange";
     return "red";
 }
 
@@ -361,21 +362,27 @@ function updateResultsList(results) {
 }
 
 function render(text, results) {
-    let html = "";
-    let last = 0;
-
-    results.sort((a, b) => a.start - b.start);
-
     if (results.length === 0) {
-        html = '<div class="empty-state">No bias detected in this text ✓</div>';
-    } else {
-        for (const r of results) {
-            html += escapeHTML(text.slice(last, r.start));
-            const segment = escapeHTML(text.slice(r.start, r.end));
-            html += `<span class="highlight ${severityColor(r.severity)} tooltip" data-tip="${escapeHTML(r.reason)}">${segment}</span>`;
-            last = r.end;
-        }
-        html += escapeHTML(text.slice(last));
+        document.getElementById("output").innerHTML = '<div class="empty-state">No bias detected in this text ✓</div>';
+        return;
+    }
+
+    let html = escapeHTML(text);
+
+    // Sort results by the position they appear in the text (to avoid conflicts when replacing)
+    results.sort((a, b) => {
+        const posA = text.indexOf(a.text);
+        const posB = text.indexOf(b.text);
+        return posA - posB;
+    });
+
+    // Replace each problematic text with highlighted version
+    for (const r of results) {
+        const escapedText = escapeHTML(r.text);
+        const highlighted = `<span class="highlight ${severityColor(r.severity)} tooltip" data-tip="Suggestion: ${escapeHTML(r.suggestion)}">${escapedText}</span>`;
+        // Use global replace to handle multiple occurrences
+        const regex = new RegExp(escapedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        html = html.replace(regex, highlighted);
     }
 
     document.getElementById("output").innerHTML = html;
